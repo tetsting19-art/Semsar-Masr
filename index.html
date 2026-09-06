@@ -1,8 +1,10 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1110"><meta name="description" content="سمسار مصر — لعبة محاكاة العقارات المصرية">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b0a">
+<meta name="description" content="سمسار مصر — لعبة محاكاة الاستثمار العقاري">
 <title>سمسار مصر | لعبة العقارات</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -10,10 +12,10 @@
 <body>
 <div id="authScreen" class="auth-screen">
   <div class="auth-card">
-    <div class="brand-mark">🏠</div>
-    <div class="season">الموسم الأول • سوق العقارات المصري</div>
+    <div class="brand-mark">سم</div>
+    <div class="season">الموسم الأول • السوق العقاري المصري</div>
     <h1>سمسار مصر</h1>
-    <p class="auth-sub">ابدأ بـ <b>500,000 ج.م</b> واثبت إنك تقدر تكبر إمبراطوريتك.</p>
+    <p class="auth-sub">ابدأ بـ <b>500,000 ج.م</b> وابنِ إمبراطوريتك العقارية.</p>
     <div class="auth-tabs"><button id="loginTab" class="active">تسجيل الدخول</button><button id="signupTab">حساب جديد</button></div>
     <input id="username" type="text" maxlength="18" autocomplete="username" placeholder="اسم المستخدم">
     <input id="password" type="password" maxlength="72" autocomplete="current-password" placeholder="كلمة السر">
@@ -25,26 +27,79 @@
 
 <div id="gameApp" class="app hidden">
 <header class="topbar">
-  <div class="brand"><div class="mini-logo">🏠</div><div><b>سمسار مصر</b><small id="playerName">...</small></div></div>
-  <div class="top-actions"><button id="logoutBtn" class="ghost-btn">خروج</button></div>
+  <div class="brand"><div class="mini-logo">سم</div><div><b>سمسار مصر</b><small id="playerName">...</small></div></div>
+  <div class="top-actions"><div class="day-pill"><span id="dateText">السنة 2026 • الشهر 1 • اليوم 1</span><b>اليوم <span id="day">1</span></b></div><button id="logoutBtn" class="ghost-btn">خروج</button></div>
 </header>
+
 <main>
 <section class="hero">
-  <div class="hero-copy"><span class="eyebrow">🇪🇬 الموسم الأول • السوق المصري</span><h1>إنت السمسار… <span>والسوق مش بيرحم.</span></h1><p>اشتري تحت السوق، فاوض صح، رمّم، واستنى اللحظة الصح للبيع.</p><div class="hero-chips"><span>🔇 بدون أصوات</span><span>💾 حفظ تلقائي</span><span>🏆 Top 10</span></div></div>
-  <div class="hero-stats"><div><small>الكاش</small><strong id="cash">0</strong></div><div><small>صافي الثروة</small><strong id="netWorth">0</strong></div><div><small>السمعة</small><strong id="rep">0/100 ⭐</strong></div></div>
+  <div class="hero-copy"><span class="eyebrow">السوق المصري</span><h1>إنت السمسار… <span>والسوق مش بيرحم.</span></h1><p>اشتري تحت السوق، فاوض، رمّم، أجّر، وخلي كل جنيه يشتغل لصالحك.</p>
+  <div class="hero-actions"><button id="nextDay" class="primary-btn">اليوم التالي</button><button id="loanBtn" class="secondary-btn">البنك والقروض</button></div></div>
+  <div class="hero-stats"><div><small>الكاش</small><strong id="cash">0</strong></div><div><small>صافي الثروة</small><strong id="netWorth">0</strong></div><div><small>السمعة</small><strong id="rep">0/100</strong></div></div>
 </section>
-<section class="ticker"><span>📰 أخبار السوق</span><b id="news">السوق بيتحرك… والصفقة الصح مش دايمًا الأرخص.</b></section>
+<section class="ticker"><span>أخبار السوق</span><b id="news">السوق بيتحرك…</b></section>
+
 <nav class="tabs" aria-label="أقسام اللعبة">
-<button class="tab active" data-tab="market">🏘️ السوق</button><button class="tab" data-tab="portfolio">📁 عقاراتي</button><button class="tab" data-tab="city">🗺️ الخريطة</button><button class="tab" data-tab="leaderboard">🏆 المتصدرين</button><button class="tab" data-tab="profile">👤 السمسار</button>
+<button class="tab active" data-tab="market">السوق</button>
+<button class="tab" data-tab="portfolio">عقاراتي <span id="offersBadge" class="badge">0</span></button>
+<button class="tab" data-tab="city">المناطق</button>
+<button class="tab" data-tab="bank">البنك</button>
+<button class="tab" data-tab="office">المكتب</button>
+<button class="tab" data-tab="leaderboard">المتصدرون</button>
+<button class="tab" data-tab="notifications">التنبيهات</button>
+<button class="tab" data-tab="profile">حسابي</button>
 </nav>
-<section id="market" class="panel active"><div class="section-head"><div><h2>العروض الموجودة</h2><p>كل يوم عروض جديدة. كل منطقة وليها سعر.</p></div><div class="filters" id="filters"></div></div><div id="listings" class="grid"></div></section>
-<section id="portfolio" class="panel"><div class="section-head"><div><h2>عقاراتي</h2><p>هنا بتشوف فلوسك وهي بتشتغل.</p></div></div><div id="portfolioList" class="grid"></div></section>
-<section id="city" class="panel"><div class="section-head"><div><h2>خريطة السوق</h2><p>من المناطق الشعبية لحد الساحل والقصور.</p></div></div><div id="cityGrid" class="city-grid"></div></section>
-<section id="leaderboard" class="panel"><div class="section-head"><div><h2>🏆 Top 10 سمسار</h2><p>أعلى عشرة لاعبين حسب صافي الثروة.</p></div><button id="refreshLb" class="secondary-btn">تحديث</button></div><div id="lb" class="leaderboard"></div></section>
-<section id="profile" class="panel"><div class="profile-card"><div class="avatar">🧑‍💼</div><div><h2 id="rankName">سمسار مبتدئ</h2><p id="rankText">لسه بتتعلم السوق.</p><small id="statsText"></small></div><div class="level"><small>المستوى</small><strong id="level">1</strong></div></div><div class="achievements" id="achievements"></div><div class="upgrade-card"><div><h3>📣 تطوير المكتب</h3><p id="officeText">مكتب أحسن = فرص أكتر.</p></div><button id="upgradeBtn" class="primary-btn">تطوير المكتب</button></div></section>
+
+<section id="market" class="panel active">
+  <div class="section-head"><div><h2>سوق العقارات</h2><p>عروض جديدة، أسعار متغيرة، ومنافسة حقيقية.</p></div><div class="filters" id="filters"></div></div>
+  <div id="listings" class="grid"></div>
+</section>
+
+<section id="portfolio" class="panel">
+  <div class="section-head"><div><h2>عقاراتي</h2><p>هنا بتشوف فلوسك وهي بتشتغل.</p></div></div>
+  <div id="offerList" class="offer-list"></div>
+  <div id="portfolioList" class="grid"></div>
+</section>
+
+<section id="city" class="panel">
+  <div class="section-head"><div><h2>مناطق السوق</h2><p>من المناطق الشعبية لحد الساحل والفلل والقصور.</p></div></div>
+  <div id="cityGrid" class="city-grid"></div>
+</section>
+
+<section id="bank" class="panel">
+  <div class="section-head"><div><h2>البنك والقروض</h2><p>استخدم القرض للتوسع، لكن احسب الفائدة والأقساط.</p></div><button id="loanBtn2" class="primary-btn">طلب قرض</button></div>
+  <div class="bank-summary"><div><small>إجمالي الديون</small><b id="debtTotal">0</b></div><div><small>القروض الحالية</small><b id="loanCount">0</b></div></div>
+  <div id="bankList" class="bank-list"></div>
+</section>
+
+<section id="office" class="panel">
+  <div class="office-hero"><div><span>مستوى المكتب</span><strong id="officeLevel">1</strong><p>كل تطوير يفتح لك أماكن عقارات أكثر.</p></div><div class="office-big"><span>القدرة الحالية</span><b id="officeSlots">4</b><small>عقارات</small></div></div>
+  <div class="progress"><i id="officeProgress"></i></div>
+  <div class="upgrade-card"><div><h3>تطوير المكتب</h3><p>التطوير الحالي يفتح سعة أكبر للمحفظة ويخليك تدخل صفقات أكتر.</p></div><button id="upgradeBtn" class="primary-btn">تطوير المكتب</button></div>
+  <div class="office-extra"><div class="section-head"><div><h3>موظفو المبيعات</h3><p>الموظفون يبحثون عن مشترين محتملين، لكن لهم رواتب شهرية.</p></div><div class="employee-cap" id="employeeCap">0/1</div></div><div id="employeeList" class="employee-list"></div><button id="hireEmployee" class="secondary-btn">توظيف موظف</button></div>
+</section>
+
+<section id="leaderboard" class="panel">
+  <div class="section-head"><div><h2>المتصدرون</h2><p>اضغط على أي لاعب عشان تشوف معلوماته العامة.</p></div><button id="refreshLb" class="secondary-btn">تحديث</button></div>
+  <div id="lb" class="leaderboard"></div>
+</section>
+
+<section id="notifications" class="panel">
+  <div class="section-head"><div><h2>التنبيهات</h2><p>العروض والأحداث المهمة اللي حصلت أثناء لعبك.</p></div></div><div id="notificationList" class="notification-list"></div>
+</section>
+
+<section id="profile" class="panel">
+  <div class="profile-card"><div class="avatar">سم</div><div><h2 id="rankName">سمسار مبتدئ</h2><p id="rankText">لسه بتتعلم السوق.</p><small id="statsText"></small></div><div class="level"><small>المستوى</small><strong id="level">1</strong></div></div>
+  <div class="profile-grid"><div><h3>إنجازات</h3><div class="achievements" id="achievements"></div></div><div><h3>أخبارك</h3><div id="activityList" class="activity-list"></div></div></div>
+</section>
 </main>
-<div id="modal" class="modal hidden"><div class="modal-box"><button class="close" id="closeModal">×</button><div id="modalContent"></div></div></div>
-<div id="toast" class="toast"></div><footer>سمسار مصر • لعبة محاكاة افتراضية • مفيش فلوس حقيقية</footer>
 </div>
+
+<div id="modal" class="modal hidden"><div class="modal-card"><button id="closeModal" class="modal-close">×</button><div id="modalContent"></div></div></div>
+<div id="toast" class="toast"></div>
+<script>
+document.getElementById("loanBtn2").onclick=()=>document.getElementById("loanBtn").click();
+</script>
 <script src="app.js"></script>
-</body></html>
+</body>
+</html>
