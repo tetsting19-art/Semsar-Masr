@@ -45,8 +45,8 @@
 <button class="tab" data-tab="city">المناطق</button>
 <button class="tab" data-tab="bank">البنك</button>
 <button class="tab" data-tab="office">المكتب</button>
+<button class="tab" data-tab="staff">الموظفين</button>
 <button class="tab" data-tab="leaderboard">المتصدرون</button>
-<button class="tab" data-tab="notifications">التنبيهات</button>
 <button class="tab" data-tab="profile">حسابي</button>
 </nav>
 
@@ -72,20 +72,20 @@
   <div id="bankList" class="bank-list"></div>
 </section>
 
+<section id="staff" class="panel">
+  <div class="section-head"><div><h2>فريق المبيعات</h2><p>وظّف ناس تدور لك على مشترين محتملين بدل ما تبيع كل حاجة بنفسك.</p></div><button id="hireBtn" class="primary-btn">توظيف موظف</button></div>
+  <div id="staffList" class="staff-grid"></div>
+</section>
+
 <section id="office" class="panel">
   <div class="office-hero"><div><span>مستوى المكتب</span><strong id="officeLevel">1</strong><p>كل تطوير يفتح لك أماكن عقارات أكثر.</p></div><div class="office-big"><span>القدرة الحالية</span><b id="officeSlots">4</b><small>عقارات</small></div></div>
   <div class="progress"><i id="officeProgress"></i></div>
   <div class="upgrade-card"><div><h3>تطوير المكتب</h3><p>التطوير الحالي يفتح سعة أكبر للمحفظة ويخليك تدخل صفقات أكتر.</p></div><button id="upgradeBtn" class="primary-btn">تطوير المكتب</button></div>
-  <div class="office-extra"><div class="section-head"><div><h3>موظفو المبيعات</h3><p>الموظفون يبحثون عن مشترين محتملين، لكن لهم رواتب شهرية.</p></div><div class="employee-cap" id="employeeCap">0/1</div></div><div id="employeeList" class="employee-list"></div><button id="hireEmployee" class="secondary-btn">توظيف موظف</button></div>
 </section>
 
 <section id="leaderboard" class="panel">
   <div class="section-head"><div><h2>المتصدرون</h2><p>اضغط على أي لاعب عشان تشوف معلوماته العامة.</p></div><button id="refreshLb" class="secondary-btn">تحديث</button></div>
   <div id="lb" class="leaderboard"></div>
-</section>
-
-<section id="notifications" class="panel">
-  <div class="section-head"><div><h2>التنبيهات</h2><p>العروض والأحداث المهمة اللي حصلت أثناء لعبك.</p></div></div><div id="notificationList" class="notification-list"></div>
 </section>
 
 <section id="profile" class="panel">

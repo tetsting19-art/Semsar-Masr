@@ -14,14 +14,14 @@ create table if not exists public.game_profiles (
   stats jsonb not null default '{"deals":0,"profit":0,"flips":0}'::jsonb,
   loans jsonb not null default '[]'::jsonb,
   rent_offers jsonb not null default '[]'::jsonb,
-  employees jsonb not null default '[]'::jsonb,
+  staff jsonb not null default '[]'::jsonb,
   net_worth bigint not null default 500000,
   updated_at timestamptz not null default now()
 );
 
 alter table public.game_profiles add column if not exists loans jsonb not null default '[]'::jsonb;
 alter table public.game_profiles add column if not exists rent_offers jsonb not null default '[]'::jsonb;
-alter table public.game_profiles add column if not exists employees jsonb not null default '[]'::jsonb;
+alter table public.game_profiles add column if not exists staff jsonb not null default '[]'::jsonb;
 alter table public.game_profiles enable row level security;
 
 drop policy if exists "read leaderboard" on public.game_profiles;
