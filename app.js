@@ -73,10 +73,52 @@ async function sell(i){const p=state.owned[i];if(!p)return;if(renovationInfo(p).
 function renderCities(){const html=[...regularAreas.map(a=>({name:a[0],tier:a[1],base:a[2]})),...coastal.map(c=>({name:c[0],tier:"ساحلي",base:c[1],coastal:true,villages:c[2]}))].map((a,i)=>`<button class="city" data-city="${i}"><div class="city-top"><span>${a.coastal?"ساحلي":"مصر"}</span><span class="tier">${esc(a.tier)}</span></div><h3>${esc(a.name)}</h3><p>${a.coastal?`${a.villages.length} قرى • 10 فلل + 10 شاليهات لكل قرية`:`10 عقارات متنوعة`}</p><span class="village-enter">فتح المنطقة ←</span></button>`).join("");$("cityGrid").innerHTML=html}
 function cityClick(i){const all=[...regularAreas.map(a=>({name:a[0],tier:a[1]})),...coastal.map(c=>({name:c[0],tier:"ساحلي",villages:c[2]}))];const a=all[i];if(!a)return;if(a.villages){modal(`<h2>${esc(a.name)}</h2><p>اختار القرية.</p><div class="village-grid">${a.villages.map(v=>`<button class="village" data-village="${esc(v)}" data-area="${esc(a.name)}"><b>${esc(v)}</b><small>10 فلل + 10 شاليهات</small></button>`).join("")}</div>`)}else{selectedArea={name:a.name};showTab("market");renderListings()}}
 function renderStaff(){const nw=netWorth();$("staffList").innerHTML=staffRoles.map((r,i)=>{const s=state.staff.find(x=>x.role===r.role);return `<div class="staff-card"><div class="staff-avatar">${i+1}</div><div><h3>${esc(r.name)}</h3><p>يفتح عند ${money(r.unlock)} • راتب ${money(r.salary)} • عمولة ${(r.commission*100).toFixed(1)}%</p><small>مهارة ${r.skill}%${s?` • ${esc(s.level)}`:""}</small></div>${s?`<button class="secondary-btn" data-staff="${esc(s.id)}">إدارة</button>`:`<button class="primary-btn" data-hire="${esc(r.role)}" ${nw<r.unlock?"disabled":""}>توظيف</button>`}</div>`}).join("")}
-async function hireStaff(role){const r=staffRoles.find(x=>x.role===role);if(!r||netWorth()<r.unlock)return notify("الموظف ده لسه مقفول. وصل لصافي الثروة المطلوبة.");if(state.staff.length>=5)return notify("الحد الأقصى 5 موظفين.");state.staff.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),role:r.role,name:r.name,level:"Junior",salary:r.salary,commission:r.commission,skill:r.skill,lastSalaryAt:Date.now()});await saveCloud();notify(`تم توظيف ${r.name}.`);render()}
+async function hireStaff(role){const r=staffRoles.find(x=>x.role===role);if(!r||netWorth()<r.unlock)return notify("الموظف ده لسه مقفول. وصل لصافي الثروة المطلوبة.");if(state.staff.length>=5)return notify("الحد الأقصى 5 موظفين.");state.staff.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),role:r.role,name:r.name,level:"Junior",salary:r.salary,commission:r.commission,skill:r.skill,lastSalaryAt:Date.now(),lastProcessedDay:dayNow()});await saveCloud();notify(`تم توظيف ${r.name}. الموظف هيبدأ يشتغل تلقائيًا من اليوم الجاي.`);render()}
 function manageStaff(id){const s=state.staff.find(x=>x.id===id),r=s&&staffRoles.find(x=>x.role===s.role);if(!s||!r)return;modal(`<h2>${esc(s.name)}</h2><p>${esc(s.role)} • ${esc(s.level)}</p><div class="deal-box">راتب ${money(s.salary)} • عمولة ${(s.commission*100).toFixed(1)}%<br>مهارة ${s.skill}%</div><div class="actions"><button class="primary-btn" data-staff-up="${esc(id)}">ترقية</button><button class="secondary-btn" data-staff-fire="${esc(id)}">فصل</button></div>`)}
 async function upgradeStaff(id){const s=state.staff.find(x=>x.id===id);if(!s)return;if(s.level==="Junior"){s.level="Intermediate";s.skill+=8;s.salary=Math.round(s.salary*1.25);s.commission+=.005}else if(s.level==="Intermediate"){s.level="Senior";s.skill+=8;s.salary=Math.round(s.salary*1.3);s.commission+=.005}else{s.level="Expert";s.skill=Math.min(95,s.skill+7);s.salary=Math.round(s.salary*1.3);s.commission+=.005}await saveCloud();closeModal();render();notify("تمت ترقية الموظف.")}
 async function fireStaff(id){state.staff=state.staff.filter(s=>s.id!==id);await saveCloud();closeModal();render();notify("تم فصل الموظف.")}
+async function processStaff(){
+  if(!state.staff.length)return false;
+  const today=dayNow();
+  let changed=false;
+  let totalNet=0,worked=0;
+
+  for(const s of state.staff){
+    if(!Number.isFinite(Number(s.lastProcessedDay))){
+      s.lastProcessedDay=today;
+      changed=true;
+      continue;
+    }
+    const last=Math.max(0,Number(s.lastProcessedDay));
+    const days=Math.min(30,Math.max(0,today-last));
+    if(!days)continue;
+    const r=staffRoles.find(x=>x.role===s.role);
+    if(!r)continue;
+
+    for(let d=1;d<=days;d++){
+      const salary=Math.round(Number(s.salary||r.salary));
+      if(state.cash < salary){
+        s.lastProcessedDay=last+d;
+        changed=true;
+        continue;
+      }
+      const gross=Math.max(40000,Math.round(75000 + Number(s.skill||r.skill)*1500));
+      const commission=Math.round(gross*Number(s.commission||r.commission));
+      const net=gross-commission-salary;
+      state.cash=Math.max(0,Math.round(state.cash+net));
+      state.stats.profit=Math.round(Number(state.stats.profit||0)+Math.max(0,net));
+      state.stats.deals=Math.round(Number(state.stats.deals||0)+1);
+      state.rep=clamp(Number(state.rep||0)+(Number(s.skill||r.skill)>=70?.4:.2),0,100);
+      totalNet+=net;
+      worked++;
+      s.lastProcessedDay=last+d;
+      changed=true;
+    }
+  }
+
+  if(worked)notify(`الموظفين خلصوا ${num(worked)} صفقة تلقائية • صافي دخل ${money(totalNet)}.`);
+  return changed;
+}
 function renderBank(){const debt=state.loans.reduce((s,l)=>s+Number(l.remaining||0),0);$("debtTotal").textContent=money(debt);$("loanCount").textContent=num(state.loans.length);$("bankList").innerHTML=state.loans.map((l,i)=>`<div class="bank-loan"><div><b>${money(l.amount)} قرض</b><small>الفائدة ${l.rate}% • المتبقي ${money(l.remaining)} • القسط ${money(l.installment)}</small></div><button class="secondary-btn" data-loan-pay="${i}">سداد قسط</button></div>`).join("")||`<div class="empty">مفيش قروض حالية.</div>`}
 function loanLimit(){return Math.max(0,Math.floor(netWorth()*.28))}
 function loanModal(){const limit=loanLimit();modal(`<h2>طلب قرض</h2><p>الحد الحالي يعتمد على صافي ثروتك.</p><div class="deal-box">صافي الثروة: <b>${money(netWorth())}</b><br>الحد الأقصى: <b>${money(limit)}</b></div><input id="loanAmount" class="text-input" type="number" min="10000" max="${limit}" step="10000" value="${Math.min(limit,100000)}"><button class="primary-btn wide" id="takeLoan">استلام القرض</button>`);$("takeLoan").onclick=async()=>{const amount=Math.round(Number($("loanAmount").value));if(amount<10000||amount>limit)return notify("مبلغ القرض خارج الحد المسموح.");const rate=8+Math.min(12,state.level);const total=Math.round(amount*(1+rate/100));const installment=Math.ceil(total/10);state.cash+=amount;state.loans.push({id:String(Date.now()),amount,rate,total,remaining:total,installment,installmentsLeft:10});await saveCloud();closeModal();notify(`تم استلام قرض ${money(amount)}.`);render()}}
@@ -97,7 +139,7 @@ function modal(html){$("modalContent").innerHTML=html;$("modal").classList.remov
 function closeModal(){$("modal").classList.add("hidden")}
 function openMenu(){$("sideMenu").classList.add("open");$("menuOverlay").classList.add("show");document.body.classList.add("menu-open")}
 function closeMenu(){$("sideMenu")?.classList.remove("open");$("menuOverlay")?.classList.remove("show");document.body.classList.remove("menu-open")}
-async function processTick(){if(!user)return;const changed=syncDay();const ren=await processRenos();render();if(changed||ren){saveDayClock();await saveCloud()}}
+async function processTick(){if(!user)return;const changed=syncDay();const ren=await processRenos();const staffChanged=await processStaff();render();if(changed||ren||staffChanged){saveDayClock();await saveCloud()}}
 $("authBtn")?.addEventListener("click",auth);$("loginTab")?.addEventListener("click",()=>{signup=false;$("loginTab").classList.add("active");$("signupTab").classList.remove("active");$("authBtn").textContent="دخول"});$("signupTab")?.addEventListener("click",()=>{signup=true;$("signupTab").classList.add("active");$("loginTab").classList.remove("active");$("authBtn").textContent="إنشاء حساب"});$("logoutBtn")?.addEventListener("click",logout);$("loanBtn2")?.addEventListener("click",loanModal);$("upgradeBtn")?.addEventListener("click",upgradeOffice);$("refreshLb")?.addEventListener("click",leaderboard);$("closeModal")?.addEventListener("click",closeModal);$("modal")?.addEventListener("click",e=>{if(e.target===$("modal")||e.target.matches("[data-modal-close]"))closeModal()});$("menuBtn")?.addEventListener("click",openMenu);$("menuClose")?.addEventListener("click",closeMenu);$("menuOverlay")?.addEventListener("click",closeMenu);document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>showTab(t.dataset.tab)));$("adminRefresh")?.addEventListener("click",loadAdminPlayers);$("adminResetAll")?.addEventListener("click",adminResetAll);document.querySelectorAll(".filter").forEach(b=>b.addEventListener("click",()=>{state.filter=b.dataset.filter;document.querySelectorAll(".filter").forEach(x=>x.classList.remove("active"));b.classList.add("active");renderListings()}));$("backMarket")?.addEventListener("click",()=>{selectedArea=null;renderListings()});
 document.addEventListener("click",async e=>{const a=e.target.closest("[data-action]");if(a){const action=a.dataset.action;if(action==="buy")await buy(a.dataset.id);if(action==="neg")negotiationModal(a.dataset.id);if(action==="sell")await sell(Number(a.dataset.i));if(action==="reno")openReno(Number(a.dataset.i));return}const city=e.target.closest("[data-city]");if(city){cityClick(Number(city.dataset.city));return}const village=e.target.closest("[data-village]");if(village){selectedArea={name:village.dataset.area,village:village.dataset.village};closeModal();showTab("market");renderListings();return}const hire=e.target.closest("[data-hire]");if(hire){await hireStaff(hire.dataset.hire);return}const staff=e.target.closest("[data-staff]");if(staff){manageStaff(staff.dataset.staff);return}const up=e.target.closest("[data-staff-up]");if(up){await upgradeStaff(up.dataset.staffUp);return}const fire=e.target.closest("[data-staff-fire]");if(fire){await fireStaff(fire.dataset.staffFire);return}const lp=e.target.closest("[data-loan-pay]");if(lp){await payLoan(Number(lp.dataset.loanPay));return}const lb=e.target.closest("[data-user]");if(lb){await publicProfile(lb.dataset.user);return}const am=e.target.closest("[data-admin-money]");if(am){await adminMoneyAction(am.dataset.adminMoney,am.dataset.adminId);return}const ar=e.target.closest("[data-admin-reset]");if(ar){await adminResetPlayer(ar.dataset.adminReset);return}const av=e.target.closest("[data-admin-view]");if(av){await publicProfile(av.dataset.adminView);return}const mission=e.target.closest("[data-mission]");if(mission){await claimMission(mission.dataset.mission);return}const rs=e.target.closest("[data-reno-start]");if(rs){await startReno(Number(rs.dataset.renoStart));return}const rk=e.target.closest("[data-reno-skip]");if(rk){await skipReno(Number(rk.dataset.renoSkip));return}});
 restoreSession();
